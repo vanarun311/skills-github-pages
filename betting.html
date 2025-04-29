@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Team Selection and Betting (Password Protected)</title>
+  <style>
+    /* Same CSS as before for styling */
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { text-align: center; }
+    ul { list-style: none; padding: 0; max-width: 400px; }
+    li { background: #f2f2f2; margin: 8px 0; padding: 10px; border-radius: 5px; display: flex; justify-content: space-between; }
+    .name { flex-grow: 1; }
+    .buttons { display: flex; gap: 8px; }
+    .team-button { padding: 6px 10px; cursor: pointer; border: none; border-radius: 4px; color: white; }
+    .rr-button { background-color: #ff4081; }
+    .gt-button { background-color: #3f51b5; }
+    .change-team-button { background-color: #ff9800; margin-left: 8px; }
+    .bet-button { background-color: #ffa000; color: white; padding: 5px 8px; margin-left: 6px; border: none; border-radius: 4px; cursor: pointer; }
+    input[type="number"] { width: 60px; margin-left: 10px; padding: 3px; }
+    table { width: 80%; margin-top: 30px; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background-color: #eee; }
+    .counters { margin-top: 10px; text-align: center; font-size: 1.1rem; }
+    .bets-table { margin-top: 10px; border: 1px solid #ccc; width: 100%; }
+  </style>
+</head>
+<body>
+
+<h1>Choose a Team (Password Protected)</h1>
+
+<ul id="peopleList"></ul>
+
+<div id="tableContainer"></div>
+
+<div class="counters" id="counters">
+  <p>RR: 0 members | GT: 0 members</p>
+</div>
+
+<script>
+  const people = [
+    "Ajay", "Alex", "Allu", "Arun", "Bharath",
+    "Lenin", "Mahesh", "Mani Minusha", "Murali",
+    "Muthu", "Prabhu", "Prakash", "Sanjay",
+    "Spin Mani", "Sunesh", "Venkatesh", "Vicky", "Vinoth"
+  ];
+
+  const predefinedPasswords = [
+    "apple", "brush", "clock", "dance", "drink",
+    "earth", "green", "happy", "house",
+    "music", "party", "river", "spoon",
+    "table", "tiger", "water", "wheel", "world"
+  ];
+
+  const playerPasswords = {};
+  const assignedPeople = new Set();
+
+  people.forEach((person, index) => {
+    playerPasswords[person] = predefinedPasswords[index];
+  });
+
+  const list = document.getElementById('peopleList');
+  const tableContainer = document.getElementById('tableContainer');
+  const counters = document.getElementById('counters');
+
+  let tableCreated = false;
+  let rrColumn, gtColumn;
+  let rrCount = 0, gtCount = 0;
+
+
+
+  function updateCounters() {
+    counters.innerHTML = `<p>RR: ${rrCount} members | GT: ${gtCount} members</p>`;
+  }
+
+  function createTable() {
+    const table = document.createElement('table');
+
+    const headerRow = document.createElement('tr');
+    const rrHeader = document.createElement('th');
+    rrHeader.textContent = 'RR';
+    const gtHeader = document.createElement('th');
+    gtHeader.textContent = 'GT';
+
+    headerRow.appendChild(rrHeader);
+    headerRow.appendChild(gtHeader);
+    table.appendChild(headerRow);
+
+    const dataRow = document.createElement('tr');
+    rrColumn = document.createElement('td');
+    gtColumn = document.createElement('td');
+
+    dataRow.appendChild(rrColumn);
+    dataRow.appendChild(gtColumn);
+    table.appendChild(dataRow);
+
+    tableContainer.appendChild(table);
+
+    tableCreated = true;
+  }
+
+  function promptPassword(name) {
+    const enteredPassword = prompt(`Enter password for ${name}:`);
+    if (enteredPassword === playerPasswords[name]) {
+      return true;
+    } else {
+      alert("Wrong password!");
+      return false;
+    }
+  }
+
+  function handleSelection(name, team, listItem) {
+    if (!promptPassword(name)) return;
+
+    if (assignedPeople.has(name)) {
+      alert(name + " is already assigned to a team!");
+      return;
+    }
+
+    if (!tableCreated) {
+      createTable();
+    }
+
+    // Remove player from the initial list
+    listItem.remove(); // Correctly remove the list item from the people list
+
+    const nameContainer = document.createElement('div');
+    nameContainer.style.marginBottom = "8px";
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = name;
+
+    const input = document.createElement('input');
+    input.type = "number";
+    input.placeholder = "Bet";
+
+    const betButton = document.createElement('button');
+    betButton.textContent = "Bet";
+    betButton.className = 'bet-button';
+
+    betButton.onclick = function() {
+      const bettorPassword = prompt("Enter your password to place a bet:");
+      const bettorName = Object.keys(playerPasswords).find(player => playerPasswords[player] === bettorPassword);
+
+      if (!bettorName) {
+        alert("Wrong password!");
+        return;
+      }
+
+      // Check if bettor has selected a team
+      if (!assignedPeople.has(bettorName)) {
+        alert("Choose your team first!");
+        return;
+      }
+
+      if (input.value === "" || isNaN(input.value) || Number(input.value) <= 0) {
+        alert("Please enter a valid bet amount.");
+        return;
+      }
+
+      addBetRecord(name, bettorName, input.value);
+      input.value = "";
+    };
+
+    const changeTeamBtn = document.createElement('button');
+    changeTeamBtn.textContent = 'Change Team';
+    changeTeamBtn.className = 'team-button change-team-button';
+    changeTeamBtn.onclick = function() {
+      if (!promptPassword(name)) return;
+      changeTeam(name, team, nameContainer);
+    };
+
+    nameContainer.appendChild(nameSpan);
+    nameContainer.appendChild(input);
+    nameContainer.appendChild(betButton);
+    nameContainer.appendChild(changeTeamBtn);
+
+    if (team === 'RR') {
+      rrColumn.appendChild(nameContainer);
+      rrCount++;
+    } else if (team === 'GT') {
+      gtColumn.appendChild(nameContainer);
+      gtCount++;
+    }
+
+    updateCounters();
+    assignedPeople.add(name);
+  }
+
+  function addBetRecord(playerName, bettorName, betAmount) {
+    let betsTable = document.getElementById(`${playerName}-bets`);
+
+    if (!betsTable) {
+        betsTable = document.createElement('table');
+        betsTable.className = 'bets-table';
+        betsTable.id = `${playerName}-bets`;
+        betsTable.innerHTML = `
+            <tr>
+                <th>First Player</th>
+                <th>Bet Amount</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        `;
+
+        const playerDiv = Array.from(document.querySelectorAll('td div')).find(div => div.firstChild.textContent === playerName);
+        if (playerDiv) {
+            playerDiv.appendChild(betsTable);
+        }
+    }
+
+    const betRow = document.createElement('tr');
+    const firstPlayerCell = document.createElement('td');
+    const amountCell = document.createElement('td');
+    const statusCell = document.createElement('td');
+    const actionCell = document.createElement('td');
+
+    firstPlayerCell.textContent = bettorName;  // The first player who placed the bet
+    amountCell.textContent = betAmount;
+
+    const confirmButton = document.createElement('button');
+    confirmButton.textContent = 'Confirm';
+    confirmButton.onclick = function() {
+        if (!promptPassword(playerName)) return;
+        statusCell.textContent = 'Confirmed';
+
+        // After confirmation, show the bet under the bettor's name as well
+        displayBetUnderBettor(bettorName, playerName, betAmount, 'Confirmed');
+        
+        // Remove the confirm/cancel buttons after confirmation
+        actionCell.innerHTML = '';  // Clears the action column
+    };
+
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.onclick = function() {
+        if (!promptPassword(playerName)) return;
+        statusCell.textContent = 'Cancelled';
+
+        // Remove the confirm/cancel buttons after cancellation
+        actionCell.innerHTML = '';  // Clears the action column
+    };
+
+    actionCell.appendChild(confirmButton);
+    actionCell.appendChild(cancelButton);
+
+    betRow.appendChild(firstPlayerCell);
+    betRow.appendChild(amountCell);
+    betRow.appendChild(statusCell);
+    betRow.appendChild(actionCell);  // Add action buttons
+
+    betsTable.appendChild(betRow);
+}
+
+
+  function displayBetUnderBettor(bettorName, firstPlayerName, betAmount, status) {
+    let bettorTable = document.getElementById(`${bettorName}-bets`);
+    
+    if (!bettorTable) {
+      bettorTable = document.createElement('table');
+      bettorTable.className = 'bets-table';
+      bettorTable.id = `${bettorName}-bets`;
+      bettorTable.innerHTML = `
+        <tr>
+          <th>First Player</th>
+          <th>Bet Amount</th>
+          <th>Status</th>
+        </tr>
+      `;
+      const bettorDiv = Array.from(document.querySelectorAll('td div')).find(div => div.firstChild.textContent === bettorName);
+      if (bettorDiv) {
+        bettorDiv.appendChild(bettorTable);
+      }
+    }
+
+    const betRow = document.createElement('tr');
+    const firstPlayerCell = document.createElement('td');
+    const amountCell = document.createElement('td');
+    const statusCell = document.createElement('td');
+
+    firstPlayerCell.textContent = firstPlayerName;  // The first player who placed the bet
+    amountCell.textContent = betAmount;
+    statusCell.textContent = status;
+
+    betRow.appendChild(firstPlayerCell);
+    betRow.appendChild(amountCell);
+    betRow.appendChild(statusCell);  // Add status
+
+    bettorTable.appendChild(betRow);
+  }
+
+  function changeTeam(playerName, currentTeam, nameContainer) {
+    let confirmedBets = false;
+    const betsTable = document.getElementById(`${playerName}-bets`);
+
+    // Check if there are any confirmed bets
+    if (betsTable) {
+      for (let row of betsTable.rows) {
+        if (row.cells[2] && row.cells[2].textContent === 'Confirmed') {
+          confirmedBets = true;
+          break;
+        }
+      }
+    }
+
+    if (confirmedBets) {
+      alert("You cannot change teams after confirming a bet.");
+      return;
+    }
+
+    // Remove player from the current team
+    if (currentTeam === 'RR') {
+      rrCount--;
+    } else if (currentTeam === 'GT') {
+      gtCount--;
+    }
+
+    // Update counters
+    updateCounters();
+
+    // Ask for new team selection
+    const newTeam = prompt("Which team would you like to move to? (RR/GT)").toUpperCase();
+    if (newTeam !== 'RR' && newTeam !== 'GT') {
+      alert("Invalid team.");
+      return;
+    }
+
+    // Remove player from the current team's column
+    nameContainer.remove();
+
+    // Add player to the new team
+    if (newTeam === 'RR') {
+      rrColumn.appendChild(nameContainer);
+      rrCount++;
+    } else if (newTeam === 'GT') {
+      gtColumn.appendChild(nameContainer);
+      gtCount++;
+    }
+
+    // Update counters
+    updateCounters();
+    assignedPeople.add(playerName);
+  }
+
+  // Create list and handle team selection
+  people.forEach(person => {
+    const listItem = document.createElement('li');
+    listItem.innerHTML = `
+      <span class="name">${person}</span>
+      <div class="buttons">
+        <button class="team-button rr-button" onclick="handleSelection('${person}', 'RR', this.parentElement)">RR</button>
+        <button class="team-button gt-button" onclick="handleSelection('${person}', 'GT', this.parentElement)">GT</button>
+      </div>
+    `;
+    list.appendChild(listItem);
+  });
+</script>
+
+</body>
+</html>
